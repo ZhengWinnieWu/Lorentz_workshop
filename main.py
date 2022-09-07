@@ -54,13 +54,13 @@ def HoA_database(root_data='./data/', root_results='./results/'):
         var_anom_series = var_series.groupby("time.dayofyear") - var_series.groupby("time.dayofyear").mean("time",skipna=True)
         
         # save the data for future use
-        np.save(root_results+'series_var_'+file_var+'_.npy',var_anom_series[header_var])
+        np.save(root_results+'series_var_'+file_var+'.npy',var_anom_series[header_var])
     ####
     
     ####
     # y (Target)
     file = root_data+'era5_hoa_dry_mask_2deg.nc' #0.25    
-    mask=xr.open_mfdataset(root_data+file,combine='by_coords',parallel=True)
+    mask=xr.open_mfdataset(file,combine='by_coords',parallel=True)
     mask_nan=mask.where(mask==1) #keep the values==1 and mask the rest
     mask_nan.tp.plot()
     mask_nan.sizes
@@ -75,7 +75,7 @@ def HoA_database(root_data='./data/', root_results='./results/'):
     # Create daily values equal to a 31 day rolling. Select OND 2000-2020 data to decide the quantile threshold
     tp_rol=tp_series.rolling(time=31, center=True).mean().sel(time=tp_series.time.dt.year.isin([np.arange(2000,2021)]))
     tp_quantile=tp_rol.sel(time=tp_rol.time.dt.month.isin([10,11,12])).quantile(0.33)
-    print('value of the 33 percentile',tp_quantile.tp.values)
+    # print('value of the 33 percentile',tp_quantile.tp.values)
     
     # Create index time series
     # Replace the values bellow the 33 percentile with 1 and the rest with zeros
@@ -85,7 +85,7 @@ def HoA_database(root_data='./data/', root_results='./results/'):
     tp_rol_sel = tp_rol.sel(time = slice(str(SYY),str(EYY)))
     tp_index = tp_rol_sel < tp_quantile
     tp_index = tp_index.astype(int)
-    print('tp index',tp_index)
+    # print('tp index',tp_index)
     
     # Select from the index time series the period for the target values (predictant) 
     # Oct 16 to Dec 16 for the period 1980-2020 (each day corresponds to a 31-day rolling mean)
@@ -95,13 +95,14 @@ def HoA_database(root_data='./data/', root_results='./results/'):
             tp_target = tp_index.sel(time = slice(str(iyr)+'-10-16',str(iyr)+'-12-16'))
         else:
             tp_target = xr.concat([tp_target,tp_index.sel(time = slice(str(iyr)+'-10-16',str(iyr)+'-12-16'))], dim='time')
-    print('number of 0 and 1: ',np.unique(tp_target['tp'],return_counts=True))
-    print(tp_target)
+    # print('number of 0 and 1: ',np.unique(tp_target['tp'],return_counts=True))
+    # print(tp_target)
     # plt.plot(tp_target.tp)
     
     # Make it into a numpy array
     target = tp_target['tp'].values
-    print(target.shape)
+    # print(target.shape)
+    np.save(root_results+'target.npy', target)
     ####
     
 def get_train_test_val(data_predictor, data_target, test_frac, val_frac):
