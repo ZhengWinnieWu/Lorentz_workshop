@@ -138,3 +138,17 @@ def plot_roc_auc(model, test_X, test_y):
     plt.legend()
     # show the plot
     plt.show()
+
+def plot_weights(weights, test_X, ntimestep):
+    val_weights = np.ndarray((len(test_X), ntimestep)) + np.nan
+    for ii in range(len(test_X)):
+        for j in range(ntimestep):
+            val_weights[ii, j] = weights[ii][j][0]
+    print(np.shape(val_weights))
+
+    fig, axs = plt.subplots(1, figsize=plt.figaspect(0.15))
+    for ii in range(len(test_X)):
+        plt.plot(val_weights[ii, :])
+
+    fig, axs = plt.subplots(1, figsize=plt.figaspect(0.15))
+    plt.plot(np.nanmean(val_weights, axis=0), 'k')
