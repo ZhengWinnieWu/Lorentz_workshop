@@ -1,7 +1,7 @@
 import xarray as xr
 import numpy as np
 
-def get_principle_components_and_EOFs2(da, nmode=5, eofscaling=2, pcscaling=1, xeofs=False, xeofs_eof_kwargs={}, xeofs_pcs_kwargs={}):
+def get_principle_components_and_EOFs(da, nmode=5, eofscaling=2, pcscaling=1, xeofs=False, xeofs_eof_kwargs={}, xeofs_pcs_kwargs={}):
     """Returns Principle Components (PC) and EOFs as xr.DataArray and print how much total variance is explained by nmode modes from an input xr.DataArray.
     
     Set xeofs=True to use Niclas xeofs package and set xeofs_*_kwargs optionally."""
