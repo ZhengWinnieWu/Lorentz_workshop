@@ -166,6 +166,7 @@ class Addition(Layer):
 def build_lstm(ntimestep, nfeature, **kwargs):
     
     reg_val = kwargs.get('regval', [1, 0.01])
+    numlayer = kwargs.get('layers',2)
 
     input_tensor = Input(shape=(ntimestep, nfeature))
     layerlstm = layers.LSTM(100, return_sequences=True, kernel_regularizer=regularizers.l2(regval[0])(input_tensor)
@@ -187,22 +188,32 @@ def defineCNN(
         input_shape: tuple,
         output_shape: float,
         **kwargs) -> Sequential:
-
-    hidden = params.get('filters', 1024)
-    random_network_seed = params.get('random_network_seed', None)
+    """
+    Builds CNN architecture based on the defined params.
+    Baseline structure 2 layer CNN.
+    
+    input_shape: tuple shape 
+    output: float
+    kwargs: list of HPs for the network
+    """
+                            
+    hidden = kwargs.get('filters', 1024)
+    random_network_seed = kwargs.get('random_network_seed', None)
     not_trainable = kwargs.get('traininable', 1)
-
+    filt_size = kwargs.get('filt',[3, 6])
+    insize = kwargs.get('ins',[6,32])
+    reg_val = kwargs.get('regval', [0.01, 0.01])
+    numlayer = kwargs.get('layers',2)
 
     inputs = Input(shape=(input_shape[0], input_shape[1], input_shape[2]))
-    x = Conv2D(6, (6, 6), padding='same')(inputs)
-    # x = Conv2D(32, (3, 3), padding='same', activation="relu", input_shape=(32, 32, 3))(x)
+    x = Conv2D(in_size[0], (filt_size[0], filt_size[0]), padding='same')(inputs)
     x = MaxPooling2D((2, 2), strides=2)(x)
+    if numlayer > 2:
+        for i in range(1,numlayer):
+            x = Conv2D(in_size[i], (filt_size[i], filt_size[i]), padding='same')(inputs)
+            x = MaxPooling2D((2, 2), strides=2)(x)
     flat1 = keras.layers.Flatten()(x)
-    class1 = Dense(hidden, activation='relu', name='dense_0')(flat1)
-    output = Dense(output_shape, activation='softmax', use_bias=True,
-                    kernel_regularizer=regularizers.l1_l2(l1=0.00, l2=0.0),
-                    bias_initializer=keras.initializers.RandomNormal(seed=random_network_seed),
-                    kernel_initializer=keras.initializers.RandomNormal(seed=random_network_seed), name='dense_out')(class1)
+    output = Dense(hidden, activation='relu', name='dense_0')(flat1)
     model = Model(inputs, output)
     model.summary()
                             
