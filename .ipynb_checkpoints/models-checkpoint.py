@@ -167,10 +167,11 @@ def build_lstm(ntimestep, nfeature, **kwargs):
     
     reg_val = kwargs.get('regval', [1, 0.01])
     numlayer = kwargs.get('layers',2)
+    neurons = kwargs.get()
 
     input_tensor = Input(shape=(ntimestep, nfeature))
     layerlstm = layers.LSTM(100, return_sequences=True, kernel_regularizer=regularizers.l2(regval[0])(input_tensor)
-    if numlayer > 2:
+    if numlayer >= 2:
         layer1 = layers.LSTM(20, return_sequences=True, kernel_regularizer=regularizers.l2(regval[1]))(layer1)
         for i in range(numlayer):
             layer1 = layers.LSTM(20, return_sequences=True, kernel_regularizer=regularizers.l2(regval[i]))(layer1)
@@ -184,10 +185,10 @@ def build_lstm(ntimestep, nfeature, **kwargs):
     model.summary()                        
     return model
                             
-def defineCNN(
-        input_shape: tuple,
+def build_CNN(
+        inputs: tf.keras.Input ,
         output_shape: float,
-        **kwargs) -> Sequential:
+        **kwargs):
     """
     Builds CNN architecture based on the defined params.
     Baseline structure 2 layer CNN.
@@ -197,24 +198,58 @@ def defineCNN(
     kwargs: list of HPs for the network
     """
                             
-    hidden = kwargs.get('filters', 1024)
     random_network_seed = kwargs.get('random_network_seed', None)
-    not_trainable = kwargs.get('traininable', 1)
-    filt_size = kwargs.get('filt',[3, 6])
+    filt_size = kwargs.get('filt',[3, 3])
     insize = kwargs.get('ins',[6,32])
     reg_val = kwargs.get('regval', [0.01, 0.01])
-    numlayer = kwargs.get('layers',2)
+    numlayer = kwargs.get('CNNlayers',2)
 
-    inputs = Input(shape=(input_shape[0], input_shape[1], input_shape[2]))
-    x = Conv2D(in_size[0], (filt_size[0], filt_size[0]), padding='same')(inputs)
-    x = MaxPooling2D((2, 2), strides=2)(x)
-    if numlayer > 2:
+    # inputs = Input(shape= *input_shape)
+    x = Conv2D(in_size[0], (filt_size[0], filt_size[0]), padding='same', stride = kwargs.get('stride',2))(inputs)
+    if kwargs.get('maxPool',0):
+        x = MaxPooling2D((2, 2), strides=2)(x)
+    if numlayer >= 2:
         for i in range(1,numlayer):
-            x = Conv2D(in_size[i], (filt_size[i], filt_size[i]), padding='same')(inputs)
-            x = MaxPooling2D((2, 2), strides=2)(x)
-    flat1 = keras.layers.Flatten()(x)
-    output = Dense(hidden, activation='relu', name='dense_0')(flat1)
-    model = Model(inputs, output)
-    model.summary()
+            x = Conv2D(in_size[i], (filt_size[i], filt_size[i]), padding='same', stride = kwargs.get('stride',2))(x)
+            if kwargs.get('maxPool',0):
+                x = MaxPooling2D((2, 2), strides=2)(x)
                             
-    return model
+    if kwargs.get('dense',0):
+        flat1 = layers.Flatten()(x)
+        output = Dense(kwargs.get('output_shape', 5), activation='relu', use_bias=True,
+                        kernel_regularizer=regularizers.l1_l2(l1=reg_val[0], l2=reg_val[0]),
+                        bias_initializer=keras.initializers.RandomNormal(seed=random_network_seed),
+                        kernel_initializer=keras.initializers.RandomNormal(seed=random_network_seed), name='dense_out')(flat1)
+    else:
+        output = GlobalAveragePooling2D()(x)
+                            
+    # model = Model(inputs, output)
+
+                            
+    return output
+                            
+def create_multi_Inp(data: Dict)
+        inputs = []                  
+        for keys, vals in data:
+                inputs.append(Input(shape= *vals, name = keys))
+        return inputs
+        
+                            
+def assemble_network(
+            data: Dict
+            input_shape: tuple,
+            regions: float,
+            ntimestep: float, 
+            **kwargs):
+                            
+    inputs = create_multi_Inp(data)       
+    features = []                  
+    for mod in range(regions)
+        model, outs = build_CNN(inputs[mod], **kwargs)                  
+        features.append(outs)
+    x = layers.Concatenate(axis = -1)(features)
+    lstm = build_lstm(ntimestep, regions, **kwargs)     
+    output = lstm(x)
+    
+                            
+    return Model(inputs, output)
