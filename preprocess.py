@@ -1,10 +1,13 @@
 import xarray as xr
 import numpy as np
 
-def get_principle_components_and_EOFs(da, nmode=5, eofscaling=2, pcscaling=1, xeofs=False, xeofs_eof_kwargs={}, xeofs_pcs_kwargs={}):
-    """Returns Principle Components (PC) and EOFs as xr.DataArray and print how much total variance is explained by nmode modes from an input xr.DataArray.
+def get_principle_components_and_EOFs(da, nmode=5, xeofs=False, xeofs_eof_kwargs={}, xeofs_pcs_kwargs={}):
+    """
+    Returns Principle Components (PC) and EOFs as xr.DataArray and print how much total variance is explained by nmode modes from an input xr.DataArray.
     
-    Set xeofs=True to use Niclas xeofs package and set xeofs_*_kwargs optionally."""
+    Set xeofs=True to use Niclas xeofs package and set xeofs_*_kwargs optionally.
+    https://xeofs.readthedocs.io/en/latest/api.html#xarray-xr-dataarray.
+    """
     assert "lon" in da.coords, "expects dimension lon and lat"
     assert "lat" in da.coords, "expects dimension lon and lat"
     
@@ -13,7 +16,7 @@ def get_principle_components_and_EOFs(da, nmode=5, eofscaling=2, pcscaling=1, xe
     
     if xeofs: # from Niclas
         from xeofs.xarray import EOF as xEof
-        model = xEof(var_anom_sel, n_modes=nmode, weights=wgts, norm=False, dim="time", **xeofs_eof_kwargs)
+        model = xEof(da, n_modes=nmode, weights=wgts, norm=False, dim="time", **xeofs_eof_kwargs)
         model.solve()
         VarEx = model.explained_variance_ratio()
         # scaling ([0, 1, 2]) – EOFs are scaled
