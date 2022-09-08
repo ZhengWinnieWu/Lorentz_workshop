@@ -1,5 +1,9 @@
-import cartopy.crs as ccrs
-import cartopy.feature as cf
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cf
+except ImportError:
+    cartopy = False
+
 from matplotlib import pyplot as plt
 import numpy as np
 from sklearn.metrics import roc_curve, f1_score
