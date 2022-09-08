@@ -167,16 +167,16 @@ def build_lstm(ntimestep, nfeature, **kwargs):
     
     reg_val = kwargs.get('regval', [1, 0.01])
     numlayer = kwargs.get('layers',2)
-    neurons = kwargs.get()
+    neurons = kwargs.get('neurons',[100,20])
 
     input_tensor = Input(shape=(ntimestep, nfeature))
-    layerlstm = layers.LSTM(100, return_sequences=True, kernel_regularizer=regularizers.l2(regval[0])(input_tensor)
-    if numlayer >= 2:
-        layer1 = layers.LSTM(20, return_sequences=True, kernel_regularizer=regularizers.l2(regval[1]))(layer1)
-        for i in range(numlayer):
-            layer1 = layers.LSTM(20, return_sequences=True, kernel_regularizer=regularizers.l2(regval[i]))(layer1)
+    layer1 = layers.LSTM(neurons[0], return_sequences=True, kernel_regularizer=regularizers.l2(regval[0]))(input_tensor)
+    if numlayer >=2:
+        print('layer ' + str(numlayer))
+        for i in range(1, numlayer):
+            layer1 = layers.LSTM(neurons[1], return_sequences=True, kernel_regularizer=regularizers.l2(regval[i]))(layer1)
 
-    layer1, alfa = AttentionWithContext()(layerlstm)
+    layer1, alfa = AttentionWithContext()(layer1)
     layer1 = Addition()(layer1)
     layer1 = layers.Dense(5, activation="relu")(layer1)
     output_tensor = layers.Dense(2, activation='softmax')(layer1)
@@ -208,7 +208,7 @@ def build_CNN(
     x = Conv2D(in_size[0], (filt_size[0], filt_size[0]), padding='same', stride = kwargs.get('stride',2))(inputs)
     if kwargs.get('maxPool',0):
         x = MaxPooling2D((2, 2), strides=2)(x)
-    if numlayer >= 2:
+    if numlayer >=2:
         for i in range(1,numlayer):
             x = Conv2D(in_size[i], (filt_size[i], filt_size[i]), padding='same', stride = kwargs.get('stride',2))(x)
             if kwargs.get('maxPool',0):
@@ -253,3 +253,12 @@ def assemble_network(
     
                             
     return Model(inputs, output)
+                            
+#Create a class weight dictionary to help if the classes are unbalanced
+def class_weight_creator(Y):
+    class_dict = {}
+    weights = np.max(np.sum(Y, axis=0)) / np.sum(Y, axis=0)
+    for i in range( Y.shape[-1] ):
+        class_dict[i] = weights[i]
+        
+    return class_dict
