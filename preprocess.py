@@ -16,8 +16,11 @@ def get_principle_components_and_EOFs(da, nmode=5, xeofs=False, xeofs_eof_kwargs
     
     if xeofs: # from Niclas
         from xeofs.xarray import EOF as xEof
-        model = xEof(da, n_modes=nmode, weights=wgts, norm=False, dim="time", **xeofs_eof_kwargs)
+        from xeofs.xarray import Rotator
+        factor = 30 # take more than nmode modes, rotate and take first nmode modes
+        model = xEof(da, n_modes=nmode * factor, weights=wgts, norm=False, dim="time", **xeofs_eof_kwargs)
         model.solve()
+        model = Rotator(model, n_rot=(nmode - 1) * factor, power=1)
         VarEx = model.explained_variance_ratio()
         # scaling ([0, 1, 2]) – EOFs are scaled
         # (i) to be orthonormal (scaling=0)
@@ -27,6 +30,7 @@ def get_principle_components_and_EOFs(da, nmode=5, xeofs=False, xeofs_eof_kwargs
         EOF = model.eofs(1)
         EOF = EOF.assign_coords(explained_variance=VarEx)
         EOF.coords["explained_variance"].attrs["units"] = "%"
+        EOF = EOF.isel(mode=slice(None, nmode))
         
         # scaling ([0, 1, 2]) – PCs are scaled
         # (i) to be orthonormal (scaling=0)
@@ -34,6 +38,7 @@ def get_principle_components_and_EOFs(da, nmode=5, xeofs=False, xeofs_eof_kwargs
         # (iii) by the singular values (scaling=2)
         # In case no weights were applied, scaling by the singular values results in the PCs having the unit of the input data (the default is 0).
         PC = model.pcs(0, **xeofs_pcs_kwargs)
+        PC = PC.isel(mode=slice(None, nmode))
     else:
         # need to use main eofs branch
         # pip install git+https://github.com/ajdawson/eofs.git
@@ -59,8 +64,8 @@ def get_principle_components_and_EOFs(da, nmode=5, xeofs=False, xeofs_eof_kwargs
         EOF = EOF.assign_coords(mode=EOF.mode+1)
     
     # just force PCs to normal distribution with unit variance
-    def standardize(ds,dim="time"):
-        return (ds-ds.mean(dim))/ds.std(dim)
+    def standardize(ds, dim="time"):
+        return (ds - ds.mean(dim)) / ds.std(dim)
 
-    print(f'the first {nmode} modes explain {round(VarEx.sum("mode").values * 100,2)}% of the total variance of {da.name}')
+    print(f'the first {nmode} modes explain {round(VarEx.isel(mode=slice(None, nmode)).sum("mode").values * 100, 2)}% of the total variance of {da.name}')
     return standardize(PC), EOF
