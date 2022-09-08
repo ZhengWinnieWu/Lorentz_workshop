@@ -1,0 +1,8 @@
+xarray
+netcdf
+matplotlib
+tensorflow
+xeofs
+git+https://github.com/ajdawson/eofs.git
+tigramite
+# optional: install cartopy via conda

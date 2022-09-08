@@ -1,6 +1,7 @@
 # Lorentz_workshop
 Code for Lorentz Workshop 2022
 
+
 Members
 -------
 - Maria
@@ -9,3 +10,4 @@ Members
 - Miguel-Ángel
 - Philine
 - Aaron
+- Leon
