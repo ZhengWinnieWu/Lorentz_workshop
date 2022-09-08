@@ -59,17 +59,14 @@ def sel_train_data_lead(nc_in_file,target_len,
     ii = 0
     YYY = SYY
     while YYY < EYY+1:
-        date_start = datetime.strftime(datetime.strptime(date_target, "%Y.%m.%d")-    timedelta(days=half_rw+lead_time+rw_1+ntimestep-1),"%Y.%m.%d")
-        date_end = datetime.strftime(datetime.strptime(date_target, "%Y.%m.%d")-    timedelta(days=half_rw+lead_time+rw_1),"%Y.%m.%d")
-        #print(date_target,date_start,date_end,it)
-        #pc_predictor[ii,:,:] = pc_xr.sel(time = slice(date_start,date_end)).values
-        #print(nc_in_file)
-        f = nc_in_file.sel(time = slice(date_start,date_end))
-        f=f.assign_coords(time=range(ntimestep))
-        time_list.append(date_target)
-        #print(date_target)
-        
-        pc_predictor.append(f)
+        if YYY not in [2005,2007,2018,2004,2006]:
+            date_start = datetime.strftime(datetime.strptime(date_target, "%Y.%m.%d")-    timedelta(days=half_rw+lead_time+rw_1+ntimestep-1),"%Y.%m.%d")
+            date_end = datetime.strftime(datetime.strptime(date_target, "%Y.%m.%d")-    timedelta(days=half_rw+lead_time+rw_1),"%Y.%m.%d")
+            #print(date_target,date_start,date_end,it)
+            f = nc_in_file.sel(time = slice(date_start,date_end))
+            f=f.assign_coords(time=range(ntimestep))
+            time_list.append(date_target)
+            pc_predictor.append(f)
         if date_target == datetime.strftime(datetime(year=YYY,month=EMM,day=EDD),"%Y.%m.%d"):
             YYY = YYY+1
             date_target = datetime.strftime(datetime(year=YYY,month=SMM,day=SDD), "%Y.%m.%d")
