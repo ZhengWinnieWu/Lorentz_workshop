@@ -1,4 +1,6 @@
 import tensorflow as tf    
+from typing import Dict
+import numpy as np
 #tf.compat.v1.disable_v2_behavior() # <-- HERE !
 
 from tensorflow import keras
@@ -165,7 +167,7 @@ class Addition(Layer):
     
 def build_lstm(ntimestep, nfeature, **kwargs):
     
-    reg_val = kwargs.get('regval', [1, 0.01])
+    regval = kwargs.get('regval', [1, 0.01])
     numlayer = kwargs.get('layers',2)
     neurons = kwargs.get('neurons',[100,20])
 
@@ -228,15 +230,15 @@ def build_CNN(
                             
     return output
                             
-def create_multi_Inp(data: Dict)
+def create_multi_Inp(data: Dict):
         inputs = []                  
         for keys, vals in data:
-                inputs.append(Input(shape= *vals, name = keys))
+                inputs.append(Input(shape= vals.shape, name = keys))
         return inputs
         
                             
 def assemble_network(
-            data: Dict
+            data: Dict,
             input_shape: tuple,
             regions: float,
             ntimestep: float, 
@@ -244,7 +246,7 @@ def assemble_network(
                             
     inputs = create_multi_Inp(data)       
     features = []                  
-    for mod in range(regions)
+    for mod in range(regions):
         model, outs = build_CNN(inputs[mod], **kwargs)                  
         features.append(outs)
     x = layers.Concatenate(axis = -1)(features)
