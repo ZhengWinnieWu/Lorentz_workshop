@@ -1,5 +1,5 @@
 import tensorflow as tf    
-from typing import Dict
+from typing import Dict, List
 import numpy as np
 #tf.compat.v1.disable_v2_behavior() # <-- HERE !
 
@@ -11,7 +11,9 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras import regularizers
 import tensorflow.keras.backend as K
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.layers import Dropout, Activation, Reshape, Flatten, LSTM, Dense, Dropout, Embedding, Bidirectional, GRU
+from tensorflow.keras.layers import (Dropout, Activation, Reshape, Flatten, 
+                                     Conv2D, LSTM, Dense, Dropout, Embedding, Bidirectional, GRU,
+                                     TimeDistributed, Concatenate)
 from tensorflow.keras import Sequential
 from tensorflow.keras import initializers, regularizers
 from tensorflow.keras import optimizers
@@ -188,8 +190,7 @@ def build_lstm(ntimestep, nfeature, **kwargs):
     return model
                             
 def build_CNN(
-        inputs: tf.keras.Input ,
-        output_shape: float,
+        inputs: tf.keras.Input,
         **kwargs):
     """
     Builds CNN architecture based on the defined params.
@@ -204,29 +205,27 @@ def build_CNN(
     filt_size = kwargs.get('filt',[3, 3])
     insize = kwargs.get('ins',[6,32])
     reg_val = kwargs.get('regval', [0.01, 0.01])
-    numlayer = kwargs.get('CNNlayers',2)
+    numfilters_firstlayer = kwargs.get('numfilters_firstlayer', 8)
+    numlayer = kwargs.get('numlayer',4)
 
     # inputs = Input(shape= *input_shape)
-    x = Conv2D(in_size[0], (filt_size[0], filt_size[0]), padding='same', stride = kwargs.get('stride',2))(inputs)
+    x = TimeDistributed(Conv2D(numfilters_firstlayer, filt_size, padding='same', strides =    kwargs.get('stride',2)))(inputs)
     if kwargs.get('maxPool',0):
-        x = MaxPooling2D((2, 2), strides=2)(x)
-    if numlayer >=2:
+        x = TimeDistributed(MaxPooling2D((2, 2), strides=2))(x)
+    if numlayer >= 2:
         for i in range(1,numlayer):
-            x = Conv2D(in_size[i], (filt_size[i], filt_size[i]), padding='same', stride = kwargs.get('stride',2))(x)
+            x = TimeDistributed(Conv2D(numfilters_firstlayer*np.power(2,i), filt_size, padding='same', strides = kwargs.get('stride',2)))(x)
             if kwargs.get('maxPool',0):
-                x = MaxPooling2D((2, 2), strides=2)(x)
+                x = TimeDistributed(MaxPooling2D((2, 2), strides=2))(x)
                             
-    if kwargs.get('dense',0):
-        flat1 = layers.Flatten()(x)
-        output = Dense(kwargs.get('output_shape', 5), activation='relu', use_bias=True,
+    if kwargs.get('dense',1):
+        flat1 = TimeDistributed(layers.Flatten())(x)
+        output = TimeDistributed(Dense(kwargs.get('output_shape', 5), activation='relu', use_bias=True,
                         kernel_regularizer=regularizers.l1_l2(l1=reg_val[0], l2=reg_val[0]),
                         bias_initializer=keras.initializers.RandomNormal(seed=random_network_seed),
-                        kernel_initializer=keras.initializers.RandomNormal(seed=random_network_seed), name='dense_out')(flat1)
+                        kernel_initializer=keras.initializers.RandomNormal(seed=random_network_seed), name='dense_out'))(flat1)
     else:
-        output = GlobalAveragePooling2D()(x)
-                            
-    # model = Model(inputs, output)
-
+        output = TimeDistributed(GlobalAveragePooling2D())(x)
                             
     return output
                             
@@ -239,22 +238,22 @@ def create_multi_Inp(data: Dict):
                             
 def assemble_network(
             data: Dict,
-            input_shape: tuple,
+            file_var: List,
             regions: float,
             ntimestep: float, 
             **kwargs):
-                            
-    inputs = create_multi_Inp(data)       
-    features = []                  
-    for mod in range(regions):
-        model, outs = build_CNN(inputs[mod], **kwargs)                  
-        features.append(outs)
-    x = layers.Concatenate(axis = -1)(features)
+                                   
+    input_tensors = [] 
+    CNN_branches = []
+    for file_var in file_vars:
+        input_tensors.append(Input(shape=data[file_var].shape[1:]))
+        CNN_branches.append(build_CNN(input_tensors[-1]))
+    CNN_outputs = layers.Concatenate(axis=-1)(CNN_branches)
     lstm = build_lstm(ntimestep, regions, **kwargs)     
-    output = lstm(x)
+    output_tensors = lstm(x)
     
                             
-    return Model(inputs, output)
+    return Model(input_tensors, output_tensors)
                             
 #Create a class weight dictionary to help if the classes are unbalanced
 def class_weight_creator(Y):
